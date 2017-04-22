@@ -2,6 +2,7 @@ import numpy as np
 from PIL import ImageGrab, Image, ImageDraw, ImageFont
 import cv2
 import time
+from directkeys import PressKey, W, A, S, D 
 
 cascPath = 'Cascades/merge_cascade_updated.xml'
 cascPath2 = 'Cascades/added_lane_cascade_updated.xml'
@@ -58,17 +59,38 @@ def cascadeUS(frame):
 		
 	return frame
 
-def record_screen():
+def roi(img, vertices):
+    #blank mask:
+    mask = np.zeros_like(img)
+    # fill the mask
+    cv2.fillPoly(mask, vertices, 255)
+    # now only show the area that is the mask
+    masked = cv2.bitwise_and(img, mask)
+    return masked
+
+def pre_process(image):
+    original_image = image
+    processed_img = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    # edge detection
+    processed_img =  cv2.Canny(processed_img, threshold1 = 200, threshold2=300)
+    #ROI restriction
+    vertices = np.array([[10,500],[10,300],[300,200],[500,200],[800,300],[800,500],
+                         ], np.int32)
+    processed_img = roi(processed_img, [vertices])
+    
+    return processed_img
+
+def main():
     while(True):
+        #PressKey(W)
         # Grabs an 800 x 600 Window in upper left corner of the screen.
-        printscreen = np.array(ImageGrab.grab(bbox=(0,40,800,640)))
-        
-        cv2.imshow('Window', cascadeUS(cv2.cvtColor(printscreen, cv2.COLOR_BGR2RGB)))
+        screen_grab = np.array(ImageGrab.grab(bbox=(0,40,800,640)))
+        processed_frame = pre_process(screen_grab)
+        cv2.imshow('window', processed_frame)
+        ##cv2.imshow('Window', cascadeUS(cv2.cvtColor(screen_grab, cv2.COLOR_BGR2RGB)))
         if cv2.waitKey(25) & 0xFF == ord('q'):
             cv2.destroyAllWindows()
             break
-def main():
-    record_screen()
         
 if __name__ == "__main__":
     main()
